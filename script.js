@@ -51,16 +51,21 @@ function toggleFavorite(id, btn) {
 // Global Filter & Search Logic
 function applyFilters() {
     cards.forEach(card => {
-        const category = card.dataset.category;
+        const category = card.dataset.category ? card.dataset.category.toLowerCase() : '';
         const cardId = card.dataset.id;
-        const altText = card.querySelector('img').alt.toLowerCase();
+        const img = card.querySelector('img');
+        const altText = img && img.alt ? img.alt.toLowerCase() : '';
 
+        // Check Category Match
         const matchesCategory = 
             activeCategory === 'all' ? true :
             activeCategory === 'favorites' ? favorites.includes(cardId) :
             category === activeCategory;
 
-        const matchesSearch = altText.includes(searchQuery) || category.includes(searchQuery);
+        // Check Search Query Match (searches alt text, category name, or card ID)
+        const matchesSearch = searchQuery === '' || 
+                              altText.includes(searchQuery) || 
+                              category.includes(searchQuery);
 
         if (matchesCategory && matchesSearch) {
             card.classList.remove('hide');
@@ -78,6 +83,11 @@ filterBtns.forEach(btn => {
         filterBtns.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         activeCategory = btn.dataset.filter;
+
+        // Clear search query when changing categories for better UX
+        searchQuery = '';
+        searchInput.value = '';
+
         applyFilters();
     });
 });
@@ -85,6 +95,19 @@ filterBtns.forEach(btn => {
 // Live Search Input Handler
 searchInput.addEventListener('input', (e) => {
     searchQuery = e.target.value.toLowerCase().trim();
+
+    // If searching, automatically reset the category selection to 'All'
+    if (searchQuery !== '' && activeCategory !== 'all') {
+        activeCategory = 'all';
+        filterBtns.forEach(b => {
+            if (b.dataset.filter === 'all') {
+                b.classList.add('active');
+            } else {
+                b.classList.remove('active');
+            }
+        });
+    }
+
     applyFilters();
 });
 
@@ -100,6 +123,7 @@ cards.forEach(card => {
 });
 
 function updateLightbox() {
+    if (visibleCards.length === 0) return;
     const currentCard = visibleCards[currentIndex];
     const imgElement = currentCard.querySelector('img');
     lightboxImg.src = imgElement.src;
@@ -109,12 +133,14 @@ function updateLightbox() {
 // Next / Previous Handlers
 prevBtn.addEventListener('click', (e) => {
     e.stopPropagation();
+    if (visibleCards.length === 0) return;
     currentIndex = (currentIndex - 1 + visibleCards.length) % visibleCards.length;
     updateLightbox();
 });
 
 nextBtn.addEventListener('click', (e) => {
     e.stopPropagation();
+    if (visibleCards.length === 0) return;
     currentIndex = (currentIndex + 1) % visibleCards.length;
     updateLightbox();
 });
